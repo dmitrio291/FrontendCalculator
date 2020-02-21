@@ -1,4 +1,4 @@
-# FrontendCalculator
+# Frontend calculator
 The calculator for calculating the cost of a site development
 
 ## The Instruction for running the project:
