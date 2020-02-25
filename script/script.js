@@ -50,47 +50,47 @@ document.addEventListener( 'DOMContentLoaded', () => {
         return n + ' ' + titles[from ? n % 10 === 1 && n % 100 !== 11 ? 1 : 2 : 
             n % 10 === 1 && n % 100 !== 11 ? 0 : 
             n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2];
-    }
+    };
 
     const showElement = element => element.style.display = 'block';
     const hideElement = element => element.style.display = 'none';
 
-    const dopOptionsString = () => {
+    const dopOptionsString = ( yandex, google, order ) => {
 
         let string = '';
 
-        if ( metrikaYandex.checked || analyticsGoogle.checked || sendOrder.checked ) {
+        if ( yandex || google || order ) {
             string += 'Подключим'
 
-            if ( metrikaYandex.checked ) {
+            if ( yandex ) {
                 string += ' Яндекс Метрику';
 
-                if ( analyticsGoogle.checked && sendOrder.checked ) {
+                if ( google && order ) {
                     string += ', Гугл Аналитику и отправку заявок на почту.';
                     return string;
                 }
 
-                if ( analyticsGoogle.checked || sendOrder.checked  ) {
+                if ( google || order  ) {
                     string += ' и';
                 }
             }
 
-            if ( analyticsGoogle.checked ) {
+            if ( google ) {
                 string += ' Гугл Аналитику';
 
-                if ( sendOrder.checked  ) {
+                if ( order  ) {
                     string += ' и';
                 }
             }
 
-            if ( sendOrder.checked ) string += ' отправку заявок на почту';
+            if ( order ) string += ' отправку заявок на почту';
 
             string += '.';
         }
 
         return string;
 
-    }
+    };
 
     const renderTextContent = ( total, site, maxDay, minDay ) => {
 
@@ -111,19 +111,26 @@ document.addEventListener( 'DOMContentLoaded', () => {
             ', адаптированный под мобильные устройства и планшеты' : '' }. 
             ${ editable.checked ? `Установим панель админстратора, 
             чтобы вы могли самостоятельно менять содержание на сайте без разработчика.` : '' }
-            ${ dopOptionsString() }
+            ${ dopOptionsString( metrikaYandex.checked, analyticsGoogle.checked, sendOrder.checked ) }
         `;
 
-    }
+    };
 
     const priceCalculation = ( element = {} ) => {
+
+        const {
+            whichSite,
+            price,
+            deadlineDay,
+            deadlinePercent
+        } = DATA;
 
         let result = 0,
             index = 0,
             options = [],
             site = '',
-            maxDeadlineDay = DATA.deadlineDay[index][1],
-            minDeadlineDay = DATA.deadlineDay[index][0],
+            maxDeadlineDay = deadlineDay[index][1],
+            minDeadlineDay = deadlineDay[index][0],
             overPercent = 0;
 
         if ( element.name === 'whichSite' ) {
@@ -139,28 +146,28 @@ document.addEventListener( 'DOMContentLoaded', () => {
         for ( const item of formCalсulate.elements ) {
 
             if ( item.name === 'whichSite' && item.checked ) {
-                index = DATA.whichSite.indexOf( item.value );
+                index = whichSite.indexOf( item.value );
                 site = item.dataset.site;
-                maxDeadlineDay = DATA.deadlineDay[index][1];
-                minDeadlineDay = DATA.deadlineDay[index][0];
+                maxDeadlineDay = deadlineDay[index][1];
+                minDeadlineDay = deadlineDay[index][0];
             } else if ( item.classList.contains( 'calc-handler' ) && item.checked ) {
                 options.push(item.value);                
             } else if ( item.classList.contains( 'want-faster' ) && item.checked ) {
                 const overDay = maxDeadlineDay - rangeDeadline.value;
-                overPercent = overDay * (DATA.deadlinePercent[index] / 100);
+                overPercent = overDay * ( deadlinePercent[index] / 100 );
             }
 
         }
 
-        result += DATA.price[index];
+        result += price[index];
 
         options.forEach(( key ) => {
 
             if ( typeof(DATA[key]) === 'number' ) {
                 if ( key === 'sendOrder' ) result += DATA[key];
-                else result += DATA.price[index] * DATA[key] / 100;
+                else result += price[index] * DATA[key] / 100;
             } else {
-                if ( key === 'desktopTemplates' ) result += DATA.price[index] * DATA[key][index] / 100; 
+                if ( key === 'desktopTemplates' ) result += price[index] * DATA[key][index] / 100; 
                 else result += DATA[key][index];
             }
 
@@ -170,7 +177,7 @@ document.addEventListener( 'DOMContentLoaded', () => {
 
         renderTextContent( result, site, maxDeadlineDay, minDeadlineDay );
 
-    }
+    };
 
     const handlerCallBackForm = ( event ) => {
 
@@ -192,7 +199,7 @@ document.addEventListener( 'DOMContentLoaded', () => {
 
         if ( target.classList.contains( 'calc-handler' )) priceCalculation( target );
 
-    }
+    };
 
     const moveBackTotal = () => {
 
@@ -203,7 +210,7 @@ document.addEventListener( 'DOMContentLoaded', () => {
             window.addEventListener( 'scroll', moveTotal );
         }
 
-    }
+    };
 
     const moveTotal = () => {
 
@@ -213,6 +220,32 @@ document.addEventListener( 'DOMContentLoaded', () => {
             window.removeEventListener( 'scroll', moveTotal );
             window.addEventListener( 'scroll', moveBackTotal );
         }
+
+    };
+
+    const renderResponse = response => {
+
+        if ( response.ok ) {
+            hideElement( total );
+            cardHead.textContent = 'Заявка на разработку сайта была отправлена!!! Мы скоро с вами свяжемся!';
+            cardHead.style.color = '#00cc00';
+        }
+
+    };
+
+    const formSubmit = event => {
+
+        event.preventDefault();
+
+        const data = new FormData( event.target );
+
+        fetch('server.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            },
+            body: data,
+        }).then( renderResponse ).catch( error => console.log( error ) );
 
     }
 
@@ -239,6 +272,8 @@ document.addEventListener( 'DOMContentLoaded', () => {
     });
 
     formCalсulate.addEventListener( 'change',  handlerCallBackForm );
+
+    formCalсulate.addEventListener( 'submit', formSubmit);
 
     priceCalculation();
 
